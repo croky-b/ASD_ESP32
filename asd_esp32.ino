@@ -1,6 +1,6 @@
 
-#include <SBUS.h>  //use my fork
-#include <Servo_MCPWM.h>   //use my fork
+#include <SBUS.h>  
+#include <Servo_MCPWM.h>   
 
 #define COMMAND_RX  39
 
@@ -14,8 +14,8 @@ bool     sbusInit;
 
 
 
-const uint8_t encoder_CH1_CH2 = 27; 
-const uint8_t encoder_CH3_CH4 = 33; 
+const uint8_t encoder_CH1_CH2 = 13; // encoder pin
+const uint8_t encoder_CH3_CH4 = 12; // encoder pin
 
 float CH1X=0;
 float CH2Y=0;
@@ -57,9 +57,9 @@ disableCore1WDT();
  pinMode(COMMAND_RX, INPUT_PULLDOWN);
  
  SERVO1.attach(19, 1, 1, 0);
- SERVO2.attach(5, 1, 1, 1);
- ESC1.attach(18, 1, 2, 0);
- ESC1.attach(32, 1, 2, 1);
+ SERVO2.attach(18, 1, 1, 1);
+ ESC1.attach(32, 1, 2, 0);
+ ESC1.attach(33, 1, 2, 1);
 
  // Task 1 setup (running on core 0)
   TaskHandle_t Task1;
@@ -180,7 +180,7 @@ ESC2.writeMicroseconds(powerESC_CH3_CH4);
 
 //
 // =======================================================================================================
-//SERVO 360 code from aaedmusa
+//SERVO 360
 // =======================================================================================================
 //
 
@@ -280,15 +280,15 @@ float GoTo_CH3_CH4(float setpoint){ // moves the servo to an input position
   }
  
   if(out_CH3_CH4 > 0){ //if output is positive move CW
-    SERVO1.writeMicroseconds(1460);
+    SERVO2.writeMicroseconds(1460);
    
   }
   else if(out_CH3_CH4 < 0){ //if output is negative move CCW
-    SERVO1.writeMicroseconds(1540);
+    SERVO2.writeMicroseconds(1540);
    
   }
   else if(out_CH3_CH4 == 0){
-    SERVO1.writeMicroseconds(1500);
+    SERVO2.writeMicroseconds(1500);
    
   }
 
