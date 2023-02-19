@@ -59,7 +59,7 @@ disableCore1WDT();
  SERVO1.attach(19, 1, 1, 0);
  SERVO2.attach(18, 1, 1, 1);
  ESC1.attach(32, 1, 2, 0);
- ESC1.attach(33, 1, 2, 1);
+ ESC2.attach(33, 1, 2, 1);
 
  // Task 1 setup (running on core 0)
   TaskHandle_t Task1;
