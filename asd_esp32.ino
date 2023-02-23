@@ -1,6 +1,6 @@
 
 #include <SBUS.h>  
-#include <Servo_MCPWM.h>   //https://github.com/tttapa/Arduino-Filters
+#include <Servo_MCPWM.h>   
 #include <Filters.h>
 
 
@@ -105,6 +105,7 @@ void readSbusCommands()
 void loop() {
 
  readSbusCommands(); 
+
 
  }
 
@@ -305,16 +306,16 @@ float GoTo_CH3_CH4(float setpoint){ // moves the servo to an input position
 
   out_CH3_CH4 = error_CH3_CH4;
   
-  if(abs(out_CH3_CH4) <= 4){
+  if(abs(out_CH3_CH4) <= 25){
     out_CH3_CH4 = 0;
   }
  
   if(out_CH3_CH4 > 0){ //if output is positive move CW
-    SERVO2.writeMicroseconds(1380);
+    SERVO2.writeMicroseconds(1440);
    
   }
   else if(out_CH3_CH4 < 0){ //if output is negative move CCW
-    SERVO2.writeMicroseconds(1620);
+    SERVO2.writeMicroseconds(1560);
    
   }
   else if(out_CH3_CH4 == 0){
