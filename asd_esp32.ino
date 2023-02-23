@@ -1,6 +1,10 @@
 
 #include <SBUS.h>  
 #include <Servo_MCPWM.h>   
+#include <Filters.h>
+
+
+#include <Filters/MedianFilter.hpp>        // MedianFilter
 
 #define COMMAND_RX  39
 
@@ -46,8 +50,8 @@ Servo SERVO1;
 Servo SERVO2;
 Servo ESC1;
 Servo ESC2;
-
-
+MedianFilter<10, uint16_t> medfilt = {512};
+MedianFilter<10, uint16_t> medfilt2 = {512};
 void setup() {
 disableCore0WDT();
 disableCore1WDT();
@@ -102,8 +106,6 @@ void loop() {
 
  readSbusCommands(); 
 
- 
-
  }
 
 
@@ -146,9 +148,9 @@ hyp_CH1_CH2=sqrt(powhyp_CH1_CH2);
 powerESC_CH1_CH2=(power_CH1_CH2*5)+1500;
 power_CH1_CH2=(map(hyp_CH1_CH2,0,820,0,100));
 
-
-
 ESC1.writeMicroseconds(powerESC_CH1_CH2);
+
+
 }
 
 
@@ -180,7 +182,7 @@ ESC2.writeMicroseconds(powerESC_CH3_CH4);
 
 //
 // =======================================================================================================
-//SERVO 360
+//SERVO 360 code from aaedmusa
 // =======================================================================================================
 //
 
@@ -198,29 +200,29 @@ float GoTo_CH1_CH2(float setpoint){ // moves the servo to an input position
   if(CCW_error_CH1_CH2 < 0){ //if CCW_error is less than 0
     CCW_error_CH1_CH2 = CCW_error_CH1_CH2+360;
   }
-  
+
   // if CW_error is smaller than CCW_error (or both are equal) then error should be CW_error
   if(CW_error_CH1_CH2 < CCW_error_CH1_CH2 || CW_error_CH1_CH2 == CCW_error_CH1_CH2){ 
     error_CH1_CH2 = CW_error_CH1_CH2;
   }
   
   // if CCW_error is smaller then CW_error then make error CCW_error 
-  else if(CCW_error_CH1_CH2 < CW_error_CH1_CH2){ 
+  else if(CCW_error_CH1_CH2 < CW_error_CH1_CH2 +5){ 
     error_CH1_CH2 = -1*CCW_error_CH1_CH2; //makes error negative
   }
 
-  out_CH1_CH2 = 12*error_CH1_CH2;
-  out_CH1_CH2 = constrain(out_CH1_CH2, -255, 255); //constrains output to have maximum magnitude of 255 
-  if(abs(out_CH1_CH2) < 25){ //if output is less than 25 make it 0
+  out_CH1_CH2 = error_CH1_CH2;
+  
+  if(abs(out_CH1_CH2) <= 4){
     out_CH1_CH2 = 0;
   }
  
   if(out_CH1_CH2 > 0){ //if output is positive move CW
-    SERVO1.writeMicroseconds(1460);
+    SERVO1.writeMicroseconds(1380);
    
   }
   else if(out_CH1_CH2 < 0){ //if output is negative move CCW
-    SERVO1.writeMicroseconds(1540);
+    SERVO1.writeMicroseconds(1620);
    
   }
   else if(out_CH1_CH2 == 0){
@@ -228,24 +230,52 @@ float GoTo_CH1_CH2(float setpoint){ // moves the servo to an input position
    
   }
 
+  static unsigned long lastStateTime;
+
+  if (millis() - lastStateTime > 300)     // Print the data every 300ms
+  {
+    lastStateTime = millis();
+
+     Serial.println( "CW_error_CH1_CH2" );
+    Serial.println( CW_error_CH1_CH2 );
+     Serial.println( "CCW_error_CH1_CH2" );
+    Serial.println( CCW_error_CH1_CH2 );
+     Serial.println( "round(angle_CH1_CH2)" );
+    Serial.println( round(angle_CH1_CH2) );
+    Serial.println( "getPos_CH1_CH2()" );
+    Serial.println( getPos_CH1_CH2() );
+ 
+  }
+
+
+}
   
 
-
- }
 
 float getPos_CH1_CH2(){ // gets and returns encoder position
   // gets raw 10 bit position from the encoder and maps it to angle value
   // adds offset value
 
    
- float p_encoder_CH1_CH2= (analogRead(encoder_CH1_CH2)*0.087890625);
+ float p_encoder_CH1_CH2= (medfilt(analogRead(13))*0.087890625);
+ 
+ p_encoder_CH1_CH2 =map(p_encoder_CH1_CH2,360,0,0,360);
  
  uint16_t pos_CH1_CH2 = round (p_encoder_CH1_CH2);
+   //corrects position if needed
   
+  if (pos_CH1_CH2 < 0) {
+    pos_CH1_CH2 = 359 + pos_CH1_CH2;
+  }
+
+  else if (pos_CH1_CH2 > 359) {
+    pos_CH1_CH2 = pos_CH1_CH2 - 359;
+  }
   return pos_CH1_CH2;
   
  
 }
+
 
 
 float GoTo_CH3_CH4(float setpoint){ // moves the servo to an input position
@@ -262,29 +292,29 @@ float GoTo_CH3_CH4(float setpoint){ // moves the servo to an input position
   if(CCW_error_CH3_CH4 < 0){ //if CCW_error is less than 0
     CCW_error_CH3_CH4 = CCW_error_CH3_CH4+360;
   }
-  
+
   // if CW_error is smaller than CCW_error (or both are equal) then error should be CW_error
   if(CW_error_CH3_CH4 < CCW_error_CH3_CH4 || CW_error_CH3_CH4 == CCW_error_CH3_CH4){ 
     error_CH3_CH4 = CW_error_CH3_CH4;
   }
   
   // if CCW_error is smaller then CW_error then make error CCW_error 
-  else if(CCW_error_CH3_CH4 < CW_error_CH3_CH4){ 
+  else if(CCW_error_CH3_CH4 < CW_error_CH3_CH4 +5){ 
     error_CH3_CH4 = -1*CCW_error_CH3_CH4; //makes error negative
   }
 
-  out_CH3_CH4 = 12*error_CH3_CH4;
-  out_CH3_CH4 = constrain(out_CH3_CH4, -255, 255); //constrains output to have maximum magnitude of 255 
-  if(abs(out_CH3_CH4) < 25){ //if output is less than 25 make it 0
+  out_CH3_CH4 = error_CH3_CH4;
+  
+  if(abs(out_CH3_CH4) <= 4){
     out_CH3_CH4 = 0;
   }
  
   if(out_CH3_CH4 > 0){ //if output is positive move CW
-    SERVO2.writeMicroseconds(1460);
+    SERVO2.writeMicroseconds(1380);
    
   }
   else if(out_CH3_CH4 < 0){ //if output is negative move CCW
-    SERVO2.writeMicroseconds(1540);
+    SERVO2.writeMicroseconds(1620);
    
   }
   else if(out_CH3_CH4 == 0){
@@ -293,19 +323,29 @@ float GoTo_CH3_CH4(float setpoint){ // moves the servo to an input position
   }
 
   
+}
+  
 
-
- }
 
 float getPos_CH3_CH4(){ // gets and returns encoder position
   // gets raw 10 bit position from the encoder and maps it to angle value
   // adds offset value
 
    
- float p_encoder_CH3_CH4= (analogRead(encoder_CH3_CH4)*0.087890625);
+ float p_encoder_CH3_CH4= (medfilt2(analogRead(13))*0.087890625);
+ 
+ p_encoder_CH3_CH4 =map(p_encoder_CH3_CH4,360,0,0,360);
  
  uint16_t pos_CH3_CH4 = round (p_encoder_CH3_CH4);
+   //corrects position if needed
   
+  if (pos_CH3_CH4 < 0) {
+    pos_CH3_CH4 = 359 + pos_CH3_CH4;
+  }
+
+  else if (pos_CH3_CH4 > 359) {
+    pos_CH3_CH4 = pos_CH3_CH4 - 359;
+  }
   return pos_CH3_CH4;
   
  
